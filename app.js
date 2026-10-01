@@ -1,4 +1,7 @@
-const names=[["Topic","Input"],["Research","AI plan"],["Script","Hook + story"],["Voice","Narration"],["Visuals","Scenes"],["Render","Final 9:16"]];const $=s=>document.querySelector(s);const topic=$("#topic"),pipeline=$("#pipeline"),dialog=$("#settingsDialog"),assistantDialog=$("#assistantDialog");let running=false,lastVideoUrl="";
+const names=[["Topic","Input"],["Research","AI plan"],["Script","Hook + story"],["Voice","Narration"],["Visuals","Scenes"],["Render","Final 9:16"]];
+const skillInputs=[...document.querySelectorAll("#skills input")];
+skillInputs.forEach(i=>i.addEventListener("change",()=>i.closest(".skill").classList.toggle("active",i.checked)));
+function selectedSkills(){return skillInputs.filter(i=>i.checked).map(i=>i.value)}const $=s=>document.querySelector(s);const topic=$("#topic"),pipeline=$("#pipeline"),dialog=$("#settingsDialog"),assistantDialog=$("#assistantDialog");let running=false,lastVideoUrl="";
 names.forEach((x,i)=>pipeline.insertAdjacentHTML("beforeend",`<div class="stage" id="stage-${i}"><div class="num">${i+1}</div><strong>${x[0]}</strong><small>${x[1]}</small></div>`));
 topic.addEventListener("input",()=>$("#charCount").textContent=`${topic.value.length} / 500`);
 document.querySelectorAll("[data-topic]").forEach(b=>b.onclick=()=>{topic.value=b.dataset.topic;topic.dispatchEvent(new Event("input"));topic.focus()});
@@ -42,7 +45,7 @@ requestAnimationFrame(draw);const blob=await finished;if(audioCtx)await audioCtx
 async function generate(){
 if(running)return;running=true;const value=topic.value.trim();if(!value){topic.focus();running=false;return}
 $("#generateBtn").disabled=true;$("#downloadBtn").disabled=true;$("#overallStatus").textContent="Generating…";$("#previewTitle").textContent=value.length>72?value.slice(0,69)+"…":value;resetStages();setStage(0,"active");
-try{const base=apiBase();if(!base)throw new Error("Backend URL is not configured");const response=await fetch(base+"/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:value})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Generation failed");
+try{const base=apiBase();if(!base)throw new Error("Backend URL is not configured");const response=await fetch(base+"/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:value,skills:selectedSkills()})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Generation failed");
 setStage(0,"done");setStage(1,"active");await new Promise(r=>setTimeout(r,150));setStage(1,"done");setStage(2,"active");await new Promise(r=>setTimeout(r,150));setStage(2,"done");
 if(data.audioBase64){setStage(3,"active");await new Promise(r=>setTimeout(r,100));setStage(3,"done")}else setStage(3,"done");
 setStage(4,"active");$("#previewSub").textContent=data.script?data.script.slice(0,150)+"…":"Animated scenes ready";await new Promise(r=>setTimeout(r,200));setStage(4,"done");
