@@ -12,9 +12,8 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">✦</span><div><strong>AI Shorts Studio</strong><small>Universal video pipeline</small></div></div>
-      <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+      <div class="top-actions"><button class="assistant-btn" id="assistantBtn">✦ AI Assistant</button><button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button></div>
     </header>
-
     <main>
       <section class="hero">
         <div class="eyebrow">CREATE A SHORT</div>
@@ -30,35 +29,43 @@
           <button data-topic="A futuristic technology explained simply">Future tech</button>
         </div>
       </section>
-
       <section class="workspace">
         <div class="section-head"><div><span class="eyebrow">PIPELINE</span><h2>Production progress</h2></div><span id="overallStatus" class="status-pill">Ready</span></div>
         <div id="pipeline" class="pipeline"></div>
       </section>
-
       <section class="grid">
         <div class="card preview-card">
           <div class="section-head"><div><span class="eyebrow">PREVIEW</span><h2>9:16 canvas</h2></div><span class="mini-label">1080 × 1920</span></div>
           <div class="phone"><div class="phone-inner"><div class="preview-badge">AI SHORTS</div><div id="previewTitle">Your video preview</div><div class="preview-sub">Generate a topic to preview the concept.</div><div class="preview-play">▶</div></div></div>
         </div>
         <div class="card plan-card">
-          <div class="section-head"><div><span class="eyebrow">CONTROL</span><h2>Providers</h2></div><button id="openSettings" class="text-btn">Manage</button></div>
-          <p class="muted">Keys stay in your browser for this prototype. Connect real providers when the backend is ready.</p>
+          <div class="section-head"><div><span class="eyebrow">CONTROL</span><h2>AI Providers</h2></div><button id="openSettings" class="text-btn">Manage</button></div>
+          <p class="muted">Choose which AI handles each stage. Gemini is ready for script and assistant tasks.</p>
+          <div class="provider-row"><span class="provider-icon">G</span><div><strong>Gemini</strong><small id="geminiProvider">Not connected</small></div><span class="dot"></span></div>
           <div class="provider-row"><span class="provider-icon">T</span><div><strong>Text / Script</strong><small id="textProvider">Not connected</small></div><span class="dot"></span></div>
           <div class="provider-row"><span class="provider-icon">V</span><div><strong>Voice</strong><small id="voiceProvider">Not connected</small></div><span class="dot"></span></div>
           <div class="provider-row"><span class="provider-icon">I</span><div><strong>Images / Video</strong><small id="visualProvider">Not connected</small></div><span class="dot"></span></div>
         </div>
       </section>
     </main>
-
-    <footer><span>AI Shorts Studio</span><span>v0.1 • Mobile-first foundation</span></footer>
+    <footer><span>AI Shorts Studio</span><span>v0.2 • Gemini + Assistant foundation</span></footer>
   </div>
+
+  <dialog id="assistantDialog">
+    <form method="dialog" class="settings-panel assistant-panel" id="assistantForm">
+      <div class="section-head"><div><span class="eyebrow">AI ASSISTANT</span><h2>Studio Copilot</h2></div><button value="cancel" class="icon-btn">×</button></div>
+      <div id="assistantMessages" class="assistant-messages"><div class="assistant-msg">Salom! Mavzu, hook, script yoki video g‘oyasi haqida yoz. Men Studio ichidagi ishni boshqarishga yordam beraman.</div></div>
+      <label>Your instruction<input id="assistantInput" type="text" maxlength="1000" placeholder="Masalan: hookni kuchaytir va 35 sekundlik script qil"></label>
+      <button value="send" class="primary">Ask Gemini <span>→</span></button>
+    </form>
+  </dialog>
 
   <dialog id="settingsDialog">
     <form method="dialog" class="settings-panel" id="settingsForm">
-      <div class="section-head"><div><span class="eyebrow">SETTINGS</span><h2>Provider connections</h2></div><button value="cancel" class="icon-btn">×</button></div>
-      <p class="muted">Prototype only. Do not paste production secrets here. A secure server-side key vault will replace this screen.</p>
-      <label>Text provider<input id="textKey" type="text" placeholder="Provider name"></label>
+      <div class="section-head"><div><span class="eyebrow">SETTINGS</span><h2>AI Provider Manager</h2></div><button value="cancel" class="icon-btn">×</button></div>
+      <p class="muted">API keys should be configured on the secure backend, not stored in the browser.</p>
+      <label>Gemini<input id="geminiKey" type="text" placeholder="Gemini / Google AI"></label>
+      <label>Text provider<input id="textKey" type="text" placeholder="e.g. OpenAI / Gemini"></label>
       <label>Voice provider<input id="voiceKey" type="text" placeholder="e.g. ElevenLabs"></label>
       <label>Visual provider<input id="visualKey" type="text" placeholder="Provider name"></label>
       <label>Backend URL<input id="backendUrl" type="url" placeholder="https://your-backend.vercel.app"></label>
