@@ -20,15 +20,16 @@ try{const x=JSON.parse(raw);if(!x.script||!Array.isArray(x.scenes))throw 0;retur
 async function eleven(script){
 const key=process.env.ELEVENLABS_API_KEY;if(!key)return null;
 const voice=process.env.ELEVENLABS_VOICE_ID||"JBFqnCBsd6RMkjVDRZzb";
-const r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,{method:"POST",headers:{"xi-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({text:script,model_id:"eleven_multilingual_v2"})});
+const r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`,{method:"POST",headers:{"xi-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({text:script,model_id:"eleven_multilingual_v2"})});
 if(!r.ok)throw new Error("ElevenLabs voice generation failed");
-const buf=Buffer.from(await r.arrayBuffer());return buf.toString("base64")}
+const d=await r.json();return {audioBase64:d.audio_base64||null,alignment:d.alignment||null};
+}
 export default async function handler(req,res){
 cors(req,res);if(req.method==="OPTIONS")return res.status(204).end();if(req.method!=="POST")return res.status(405).json({error:"POST required"});
 if(!process.env.FRONTEND_ORIGIN)return res.status(503).json({error:"FRONTEND_ORIGIN is not configured"});
 if(limited(req))return res.status(429).json({error:"Too many requests. Try again in a minute."});
 const topic=clean(req.body?.topic,500);if(!topic)return res.status(400).json({error:"topic is required"});
-try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const content=await gemini(topic,skills);const audioBase64=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,6).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; while(scenes.length<6) scenes.push({text:"KEEP WATCHING",duration:3,visualPrompt:"clean cinematic vertical composition",effect:"zoom",shots:[]}); scenes=scenes.slice(0,6);
+try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const content=await gemini(topic,skills);const voice=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,6).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; while(scenes.length<6) scenes.push({text:"KEEP WATCHING",duration:3,visualPrompt:"clean cinematic vertical composition",effect:"zoom",shots:[]}); scenes=scenes.slice(0,6);
 scenes=scenes.map((s,si)=>{
   const rawShots=Array.isArray(s.shots)?s.shots:[];
   let shots=rawShots.slice(0,6).map((q,qi)=>({
@@ -50,5 +51,5 @@ scenes=scenes.map((s,si)=>{
   shots[shots.length-1].duration+=target-corrected;
   return {...s,duration:target,shots};
 });
-return res.status(200).json({ok:true,status:"ready",skills,jobId:globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:6,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:"shot-engine-motion-graphics",nextUpgrade:"provider-backed-images"}});}
+return res.status(200).json({ok:true,status:"ready",skills,jobId:globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64:voice?.audioBase64||null,voiceAlignment:voice?.alignment||null,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:6,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:"shot-engine-motion-graphics",nextUpgrade:"provider-backed-images"}});}
 catch(e){return res.status(502).json({error:e?.message||"Generation failed"})}}
