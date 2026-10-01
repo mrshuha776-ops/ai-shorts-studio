@@ -31,3 +31,34 @@ The current renderer is a browser fallback using motion graphics. Real AI visual
 ## Reference patterns
 
 PurffleShorts demonstrates provider fallback, word-synced captions and FFmpeg rendering. Kalinga demonstrates inspectable, resumable stages and channel-specific direction. AI Shorts Studio uses these as architectural references rather than copying their implementation.
+
+
+## Quality system — Director v1
+
+The production unit is not a scene; it is a **beat**. A beat is a narration phrase + semantic visual + caption + timing + transition.
+
+### Master timeline
+Voice timing is the source of truth when timestamp alignment is available. ElevenLabs can return character timing with TTS, and its Forced Alignment API can produce word-level timing for an existing audio file. The renderer should derive caption and shot boundaries from this timing rather than guessing fixed durations.
+
+### Beat quality rules
+1. Every beat must answer: **what is being said, what should be shown, and why now?**
+2. Do not change shots merely because a fixed timer expired.
+3. Prefer a new visual at semantic changes, reveals, claims, reactions, questions, or pattern interrupts.
+4. Avoid consecutive shots with the same composition, camera motion, or visual subject unless continuity is intentional.
+5. Hook beats receive the strongest visual contrast and clearest caption.
+6. Important nouns, numbers, locations, objects, and actions should have a concrete visual whenever practical.
+7. Captions must be readable, short, and synchronized to speech; emphasis should follow the spoken phrase.
+8. Do not let visual changes outrun comprehension. Fast cuts are allowed only when the narration remains understandable.
+9. The final 1–2 seconds should resolve the promise or create a natural loop/CTA without adding unrelated information.
+10. If a generated visual does not clearly support the narration, the validator should flag it for regeneration.
+
+### Quality gates
+- **Script gate:** hook clarity, factual structure, no filler, coherent payoff.
+- **Voice gate:** duration, intelligibility, natural pacing, alignment availability.
+- **Visual gate:** semantic relevance, diversity, continuity, safe text area.
+- **Sync gate:** shot/caption boundaries follow narration timing.
+- **Retention gate:** inspect opening, pattern interrupts, dead-air/low-information intervals, and ending.
+- **Render gate:** 9:16, stable frame rate, audio present, no blank frames, export format supported by the target runtime.
+
+### Target for a 45-second Short
+Use approximately 18–30 visual cuts as a starting range, but let the Director adapt the count to information density. This is a design heuristic, not a guaranteed retention formula. YouTube itself reports that Shorts performance is informed by chose-to-view, average view duration, and average percentage viewed, so the system should learn from actual channel analytics rather than assume a universal cut frequency.
