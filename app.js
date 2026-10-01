@@ -9,8 +9,35 @@ function apiBase(){return(localStorage.getItem("ai-shorts-api-base")||"").replac
 function setStage(i,state){const s=$("#stage-"+i);s.classList.remove("active","done");if(state)s.classList.add(state)}
 function resetStages(){document.querySelectorAll(".stage").forEach(x=>x.classList.remove("active","done"))}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function syncShotsToVoice(data){
+ const alignment=data.voiceAlignment, script=String(data.script||"");
+ if(!alignment?.characters?.length||!alignment.character_start_times_seconds?.length)return data;
+ const chars=alignment.characters.join(""), starts=alignment.character_start_times_seconds, ends=alignment.character_end_times_seconds||[];
+ let cursor=0;
+ const shots=[];
+ for(const scene of (data.scenes||[])){
+   for(const shot of (scene.shots||[])){
+     const cue=String(shot.startCue||shot.text||"").trim();
+     let at=-1;
+     if(cue){at=script.toLowerCase().indexOf(cue.toLowerCase(),cursor);if(at<0)at=script.toLowerCase().indexOf(cue.toLowerCase());}
+     if(at>=0&&at<starts.length){shot._voiceStart=Number(starts[at])||0;const endIndex=Math.min(starts.length-1,at+cue.length-1);shot._voiceEnd=Number(ends[endIndex]||starts[endIndex]||0);cursor=Math.max(cursor,at+cue.length);}
+     shots.push(shot);
+   }
+ }
+ const found=shots.filter(s=>Number.isFinite(s._voiceStart));
+ if(!found.length)return data;
+ for(let i=0;i<shots.length;i++){
+   const s=shots[i],next=shots[i+1];
+   if(Number.isFinite(s._voiceStart)){
+     const end=next&&Number.isFinite(next._voiceStart)?next._voiceStart:(ends.length?Number(ends[ends.length-1]):s._voiceStart+Number(s.duration||1));
+     s.duration=Math.max(.35,end-s._voiceStart);s._syncStart=s._voiceStart;
+   }
+ }
+ return data;
+}
+
 async function renderShort(data){
-setStage(5,"active");$("#overallStatus").textContent="Rendering adaptive shots…";
+setStage(5,"active");data=syncShotsToVoice(data);$("#overallStatus").textContent="Syncing voice → shots → captions…";
 const canvas=document.createElement("canvas");canvas.width=540;canvas.height=960;const ctx=canvas.getContext("2d");
 const scenes=data.scenes?.length?data.scenes:[{text:data.topic,duration:5,shots:[]}];
 const shots=[];
@@ -18,7 +45,7 @@ for(const scene of scenes){
   const ss=Array.isArray(scene.shots)&&scene.shots.length?scene.shots:[{text:scene.text,duration:scene.duration||4,visualPrompt:scene.visualPrompt||"",camera:"push-in",transition:"cut",effect:scene.effect||"zoom"}];
   ss.forEach((s,i)=>shots.push({...s,sceneText:scene.text,sceneIndex:scenes.indexOf(scene),shotIndex:i}));
 }
-const total=shots.reduce((a,s)=>a+Number(s.duration||1),0);let audioEl=null,audioCtx=null,dest=null;
+const total=Math.max(shots.reduce((a,s)=>a+Number(s.duration||1),0), data.voiceAlignment?.character_end_times_seconds?.at(-1)||0);let audioEl=null,audioCtx=null,dest=null;
 if(data.audioBase64){audioEl=new Audio("data:audio/mpeg;base64,"+data.audioBase64);audioEl.preload="auto";audioCtx=new AudioContext();dest=audioCtx.createMediaStreamDestination();const source=audioCtx.createMediaElementSource(audioEl);source.connect(dest);source.connect(audioCtx.destination)}
 const stream=canvas.captureStream(30);if(dest)dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
 const mp4Mime=MediaRecorder.isTypeSupported("video/mp4"),webmMime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")?"video/webm;codecs=vp9,opus":"video/webm",mime=mp4Mime?"video/mp4":webmMime,outputExt=mp4Mime?"mp4":"webm";
