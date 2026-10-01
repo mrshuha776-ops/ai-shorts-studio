@@ -45,7 +45,7 @@ scenes=scenes.map((s,si)=>{
     shots=Array.from({length:n},(_,i)=>({text:s.text,duration:d,visualPrompt:(s.visualPrompt||"cinematic vertical visual")+"; shot "+(i+1),camera:["wide","close","tracking"][i],transition:i?"cut":"flash",effect:i===1?"pan":(s.effect||"zoom")}));
   }
   const sum=shots.reduce((a,q)=>a+q.duration,0), target=Number(s.duration)||4, factor=target/sum;
-  shots=shots.map(q=>({...q,duration:Math.max(.7,q.duration*factor)});
+  shots=shots.map(q=>({...q,duration:Math.max(.7,q.duration*factor)}));
   const corrected=shots.reduce((a,q)=>a+q.duration,0);
   shots[shots.length-1].duration+=target-corrected;
   return {...s,duration:target,shots};
