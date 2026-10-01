@@ -1,12 +1,10 @@
 const buckets=globalThis.__aiShortsRate||new Map();globalThis.__aiShortsRate=buckets;
-function cors(req,res){const allowed=process.env.FRONTEND_ORIGIN||"";
-res.setHeader("Access-Control-Allow-Origin",allowed||"null");res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
+function cors(req,res){const origins=(process.env.FRONTEND_ORIGIN||"https://mrshuha776-ops.github.io/ai-shorts-studio,https://ai-shorts-studio-rust.vercel.app").split(",").map(x=>x.trim()).filter(Boolean);const origin=String(req.headers.origin||"");const allowed=origin&&origins.includes(origin)?origin:origins[0]||"null";res.setHeader("Access-Control-Allow-Origin",allowed);res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
 function clientKey(req){return String(req.headers["x-forwarded-for"]||req.headers["x-real-ip"]||"unknown").split(",")[0].trim()}
 function limited(key){const now=Date.now(),windowMs=60000,max=10;const a=(buckets.get(key)||[]).filter(t=>now-t<windowMs);if(a.length>=max){buckets.set(key,a);return true}a.push(now);buckets.set(key,a);return false}
 function clean(s,max){return String(s||"").trim().slice(0,max)}
 export default async function handler(req,res){
  cors(req,res);if(req.method==="OPTIONS")return res.status(204).end();if(req.method!=="POST")return res.status(405).json({error:"POST required"});
-if(!process.env.FRONTEND_ORIGIN)return res.status(503).json({error:"FRONTEND_ORIGIN is not configured"});
 if(limited(clientKey(req)))return res.status(429).json({error:"Too many requests. Try again in a minute."});
 const message=clean(req.body?.message,1000),topic=clean(req.body?.topic,500);if(!message)return res.status(400).json({error:"message is required"});
 const key=process.env.GEMINI_API_KEY;if(!key)return res.status(503).json({error:"Gemini is not configured on the backend"});
