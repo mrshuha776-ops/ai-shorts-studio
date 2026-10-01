@@ -1,1 +1,69 @@
-<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Shorts Studio</title></head><body><h1>AI Shorts Studio</h1><p>Build started.</p></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07090d">
+  <meta name="description" content="AI Shorts Studio — universal AI video workflow">
+  <title>AI Shorts Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>AI Shorts Studio</strong><small>Universal video pipeline</small></div></div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow">CREATE A SHORT</div>
+        <h1>Turn any idea into a <span>Short.</span></h1>
+        <p>Topic in. Research, script, voice, visuals and render out — one workflow.</p>
+        <div class="topic-box">
+          <textarea id="topic" rows="3" maxlength="500" placeholder="What should the video be about?&#10;e.g. 3 strange facts about black holes"></textarea>
+          <div class="topic-actions"><span id="charCount">0 / 500</span><button id="generateBtn" class="primary">Generate Short <span>→</span></button></div>
+        </div>
+        <div class="chips">
+          <button data-topic="3 surprising facts about space">Space facts</button>
+          <button data-topic="Why people remember some dreams">Psychology</button>
+          <button data-topic="A futuristic technology explained simply">Future tech</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="section-head"><div><span class="eyebrow">PIPELINE</span><h2>Production progress</h2></div><span id="overallStatus" class="status-pill">Ready</span></div>
+        <div id="pipeline" class="pipeline"></div>
+      </section>
+
+      <section class="grid">
+        <div class="card preview-card">
+          <div class="section-head"><div><span class="eyebrow">PREVIEW</span><h2>9:16 canvas</h2></div><span class="mini-label">1080 × 1920</span></div>
+          <div class="phone"><div class="phone-inner"><div class="preview-badge">AI SHORTS</div><div id="previewTitle">Your video preview</div><div class="preview-sub">Generate a topic to preview the concept.</div><div class="preview-play">▶</div></div></div>
+        </div>
+        <div class="card plan-card">
+          <div class="section-head"><div><span class="eyebrow">CONTROL</span><h2>Providers</h2></div><button id="openSettings" class="text-btn">Manage</button></div>
+          <p class="muted">Keys stay in your browser for this prototype. Connect real providers when the backend is ready.</p>
+          <div class="provider-row"><span class="provider-icon">T</span><div><strong>Text / Script</strong><small id="textProvider">Not connected</small></div><span class="dot"></span></div>
+          <div class="provider-row"><span class="provider-icon">V</span><div><strong>Voice</strong><small id="voiceProvider">Not connected</small></div><span class="dot"></span></div>
+          <div class="provider-row"><span class="provider-icon">I</span><div><strong>Images / Video</strong><small id="visualProvider">Not connected</small></div><span class="dot"></span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>AI Shorts Studio</span><span>v0.1 • Mobile-first foundation</span></footer>
+  </div>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="settings-panel" id="settingsForm">
+      <div class="section-head"><div><span class="eyebrow">SETTINGS</span><h2>Provider connections</h2></div><button value="cancel" class="icon-btn">×</button></div>
+      <p class="muted">Prototype only. Do not paste production secrets here. A secure server-side key vault will replace this screen.</p>
+      <label>Text provider<input id="textKey" type="text" placeholder="Provider name"></label>
+      <label>Voice provider<input id="voiceKey" type="text" placeholder="e.g. ElevenLabs"></label>
+      <label>Visual provider<input id="visualKey" type="text" placeholder="Provider name"></label>
+      <button value="save" class="primary">Save provider setup</button>
+    </form>
+  </dialog>
+  <script src="app.js"></script>
+</body>
+</html>
