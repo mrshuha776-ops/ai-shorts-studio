@@ -10,7 +10,7 @@ const prompt=`Create a high-retention YouTube Short about: ${topic}.
 Active production skills: ${skillText}.
 Return ONLY valid JSON with keys title, script, scenes.
 script: 70-110 words, natural spoken English, strong hook, fast pacing.
-scenes: exactly 6 objects with text (max 42 chars), duration (3-5 seconds), visualPrompt (one vivid cinematic image prompt), effect (one of zoom, pan, shake, particles, flash, glow, none).
+scenes: exactly 6 story sections. Each scene must have text (max 42 chars), duration (3-8 seconds), visualPrompt (one vivid cinematic visual direction), effect (one of zoom, pan, shake, particles, flash, glow, none), and shots (3-6 objects). Each shot has text (max 42 chars), duration (0.7-2.5 seconds), visualPrompt (different concrete visual from the scene), camera (wide, medium, close, macro, overhead, tracking, push-in, pull-out), transition (cut, flash, whip, dissolve), effect (zoom, pan, shake, particles, flash, glow, none). Total shot duration must approximately equal the scene duration. Avoid repeating the same visual or camera consecutively.
 If Hook Master is active, make scene 1 an immediate curiosity gap. If Visual Director is active, make every visualPrompt concrete, cinematic and different from the previous scene. If Retention is active, add a pattern interrupt around scene 3 or 4. If Caption Sync is active, keep scene text punchy and readable.
 No markdown.`;
 const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.8,maxOutputTokens:700,responseMimeType:"application/json"}})});
@@ -28,6 +28,27 @@ cors(req,res);if(req.method==="OPTIONS")return res.status(204).end();if(req.meth
 if(!process.env.FRONTEND_ORIGIN)return res.status(503).json({error:"FRONTEND_ORIGIN is not configured"});
 if(limited(req))return res.status(429).json({error:"Too many requests. Try again in a minute."});
 const topic=clean(req.body?.topic,500);if(!topic)return res.status(400).json({error:"topic is required"});
-try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const content=await gemini(topic,skills);const audioBase64=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,6).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; while(scenes.length<6) scenes.push({text:"KEEP WATCHING",duration:3,visualPrompt:"clean cinematic vertical composition",effect:"zoom"}); scenes=scenes.slice(0,6);
-return res.status(200).json({ok:true,status:"ready",skills,jobId:globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:6,visualMode:"motion-graphics-fallback",nextUpgrade:"provider-backed-images"}});}
+try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const content=await gemini(topic,skills);const audioBase64=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,6).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; while(scenes.length<6) scenes.push({text:"KEEP WATCHING",duration:3,visualPrompt:"clean cinematic vertical composition",effect:"zoom",shots:[]}); scenes=scenes.slice(0,6);
+scenes=scenes.map((s,si)=>{
+  const rawShots=Array.isArray(s.shots)?s.shots:[];
+  let shots=rawShots.slice(0,6).map((q,qi)=>({
+    text:clean(q?.text||s.text,60),
+    duration:Math.max(.7,Math.min(2.5,Number(q?.duration)||Math.max(.8,(Number(s.duration)||4)/Math.max(3,rawShots.length||3)))),
+    visualPrompt:clean(q?.visualPrompt||s.visualPrompt||"cinematic vertical visual",300),
+    camera:["wide","medium","close","macro","overhead","tracking","push-in","pull-out"].includes(q?.camera)?q.camera:"push-in",
+    transition:["cut","flash","whip","dissolve"].includes(q?.transition)?q.transition:"cut",
+    effect:["zoom","pan","shake","particles","flash","glow","none"].includes(q?.effect)?q.effect:(s.effect||"zoom")
+  }));
+  if(shots.length<3){
+    const n=3;
+    const d=(Number(s.duration)||4)/n;
+    shots=Array.from({length:n},(_,i)=>({text:s.text,duration:d,visualPrompt:(s.visualPrompt||"cinematic vertical visual")+"; shot "+(i+1),camera:["wide","close","tracking"][i],transition:i?"cut":"flash",effect:i===1?"pan":(s.effect||"zoom")}));
+  }
+  const sum=shots.reduce((a,q)=>a+q.duration,0), target=Number(s.duration)||4, factor=target/sum;
+  shots=shots.map(q=>({...q,duration:Math.max(.7,q.duration*factor)});
+  const corrected=shots.reduce((a,q)=>a+q.duration,0);
+  shots[shots.length-1].duration+=target-corrected;
+  return {...s,duration:target,shots};
+});
+return res.status(200).json({ok:true,status:"ready",skills,jobId:globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:6,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:"shot-engine-motion-graphics",nextUpgrade:"provider-backed-images"}});}
 catch(e){return res.status(502).json({error:e?.message||"Generation failed"})}}
