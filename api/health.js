@@ -1,1 +1,1 @@
-export default function handler(req,res){res.status(200).json({ok:true,service:"ai-shorts-studio-api",version:"0.2.0"});}
+export default function handler(req,res){res.status(200).json({ok:true,service:"ai-shorts-studio-api",version:"0.3.0",geminiConfigured:Boolean(process.env.GEMINI_API_KEY),elevenLabsConfigured:Boolean(process.env.ELEVENLABS_API_KEY)});}
