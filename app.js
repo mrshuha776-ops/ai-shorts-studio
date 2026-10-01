@@ -5,7 +5,7 @@ function selectedSkills(){return skillInputs.filter(i=>i.checked).map(i=>i.value
 names.forEach((x,i)=>pipeline.insertAdjacentHTML("beforeend",`<div class="stage" id="stage-${i}"><div class="num">${i+1}</div><strong>${x[0]}</strong><small>${x[1]}</small></div>`));
 topic.addEventListener("input",()=>$("#charCount").textContent=`${topic.value.length} / 500`);
 document.querySelectorAll("[data-topic]").forEach(b=>b.onclick=()=>{topic.value=b.dataset.topic;topic.dispatchEvent(new Event("input"));topic.focus()});
-function apiBase(){return(localStorage.getItem("ai-shorts-api-base")||"").replace(/\/$/,"")}
+function apiBase(){return(localStorage.getItem("ai-shorts-api-base")||"https://ai-shorts-studio-rust.vercel.app").replace(/\/$/,"")}
 function setStage(i,state){const s=$("#stage-"+i);s.classList.remove("active","done");if(state)s.classList.add(state)}
 function resetStages(){document.querySelectorAll(".stage").forEach(x=>x.classList.remove("active","done"))}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
