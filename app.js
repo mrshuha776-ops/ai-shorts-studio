@@ -36,6 +36,9 @@ ctx.fillStyle="rgba(255,255,255,.9)";ctx.font="800 16px Arial";ctx.textAlign="le
 const lines=wrap(scene.text),sy=450-(lines.length-1)*32;ctx.textAlign="center";ctx.font="900 44px Arial";ctx.shadowColor=`hsla(${hue},90%,70%,.45)`;ctx.shadowBlur=24;
 lines.forEach((line,n)=>{const rise=Math.min(1,local/.28)*18;ctx.globalAlpha=fade;ctx.fillStyle="#fff";ctx.fillText(line,270,sy+n*64+rise)});ctx.shadowBlur=0;ctx.globalAlpha=1;
 if(local<.55){ctx.fillStyle=`hsla(${hue},90%,65%,.8)`;ctx.fillRect(45,390,Math.min(450,450*local/.55),4)}
+if(scene.effect==="shake"){ctx.translate(Math.sin(t/35)*3,Math.cos(t/28)*3)}
+if(scene.effect==="flash"&&local<.28){ctx.fillStyle=`rgba(255,255,255,${Math.max(0,.28-local)/.28*.32})`;ctx.fillRect(0,0,540,960)}
+if(scene.effect==="glow"){ctx.globalCompositeOperation="screen";ctx.globalAlpha=.12;ctx.fillStyle=`hsl(${hue} 100% 70%)`;ctx.fillRect(0,0,540,960);ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1}
 ctx.restore();
 const progress=(acc+local)/total;ctx.fillStyle="rgba(255,255,255,.18)";ctx.fillRect(45,858,450,5);ctx.fillStyle="#fff";ctx.fillRect(45,858,450*progress,5);
 const v=ctx.createRadialGradient(270,480,280,270,480,600);v.addColorStop(0,"rgba(0,0,0,0)");v.addColorStop(1,"rgba(0,0,0,.58)");ctx.fillStyle=v;ctx.fillRect(0,0,540,960);
