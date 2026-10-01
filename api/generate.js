@@ -1,5 +1,5 @@
 const buckets=globalThis.__aiShortsGenerateRate||new Map();globalThis.__aiShortsGenerateRate=buckets;
-function cors(req,res){const allowed=process.env.FRONTEND_ORIGIN||"";res.setHeader("Access-Control-Allow-Origin",allowed||"null");res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
+function cors(req,res){const allowed=process.env.FRONTEND_ORIGIN||"https://mrshuha776-ops.github.io/ai-shorts-studio";res.setHeader("Access-Control-Allow-Origin",allowed||"null");res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
 function limited(req){const key=String(req.headers["x-forwarded-for"]||req.headers["x-real-ip"]||"unknown").split(",")[0].trim();const now=Date.now(),a=(buckets.get(key)||[]).filter(t=>now-t<60000);if(a.length>=5){buckets.set(key,a);return true}a.push(now);buckets.set(key,a);return false}
 function clean(s,max){return String(s||"").trim().slice(0,max)}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
@@ -29,7 +29,7 @@ const d=await r.json();return {audioBase64:d.audio_base64||null,alignment:d.alig
 }
 export default async function handler(req,res){
 cors(req,res);if(req.method==="OPTIONS")return res.status(204).end();if(req.method!=="POST")return res.status(405).json({error:"POST required"});
-if(!process.env.FRONTEND_ORIGIN)return res.status(503).json({error:"FRONTEND_ORIGIN is not configured"});
+
 if(limited(req))return res.status(429).json({error:"Too many requests. Try again in a minute."});
 const topic=clean(req.body?.topic,500);if(!topic)return res.status(400).json({error:"topic is required"});
 try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const content=await gemini(topic,skills);const voice=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,30).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; if(!scenes.length) scenes=[{text:topic.slice(0,42),duration:4,visualPrompt:"clean cinematic vertical composition",effect:"zoom",shots:[]}]; scenes=scenes.slice(0,30);
