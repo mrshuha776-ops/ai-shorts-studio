@@ -1,4 +1,6 @@
-import {dbConfigured,updateJob} from "./_db.js";\n\nconst buckets=globalThis.__aiShortsGenerateRate||new Map();globalThis.__aiShortsGenerateRate=buckets;
+import {dbConfigured,updateJob} from "./_db.js";
+
+const buckets=globalThis.__aiShortsGenerateRate||new Map();globalThis.__aiShortsGenerateRate=buckets;
 function cors(req,res){const defaults=["https://mrshuha776-ops.github.io/ai-shorts-studio","https://ai-shorts-studio-rust.vercel.app"];const configured=String(process.env.FRONTEND_ORIGIN||"").split(",").map(x=>x.trim()).filter(Boolean);const origins=[...new Set([...configured,...defaults])];const origin=String(req.headers.origin||"");let allowed=origins.includes(origin)?origin:"";try{const u=new URL(origin);if(!allowed&&u.protocol==="https:"&&u.hostname.endsWith(".vercel.app")&&u.hostname.startsWith("ai-shorts-studio-"))allowed=origin;}catch{}allowed=allowed||origins[0]||"null";res.setHeader("Access-Control-Allow-Origin",allowed);res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
 function limited(req){const key=String(req.headers["x-forwarded-for"]||req.headers["x-real-ip"]||"unknown").split(",")[0].trim();const now=Date.now(),a=(buckets.get(key)||[]).filter(t=>now-t<60000);if(a.length>=5){buckets.set(key,a);return true}a.push(now);buckets.set(key,a);return false}
 function clean(s,max){return String(s||"").trim().slice(0,max)}
