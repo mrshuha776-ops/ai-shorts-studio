@@ -5,11 +5,15 @@ function clean(s,max){return String(s||"").trim().slice(0,max)}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 function idealShotCount(scene, index){const duration=Number(scene?.duration)||4;const text=String(scene?.text||"");const words=text.split(/\s+/).filter(Boolean).length;const density=words>=11?1:words<=5?-1:0;const base=Math.round(duration/1.8);const hook=index===0?1:0;const count=base+density+hook;return clamp(count,duration<2.4?2:3,Math.min(6,Math.max(2,Math.ceil(duration/0.85))))}
 function fallback(topic){return {title:topic.slice(0,70),script:`Here is a quick Short about ${topic}. Stay to the end for the key idea. The most important thing to understand is that ${topic} can be explained simply. Think about the surprising detail, the real-world effect, and why it matters. That is the part most people miss.`,scenes:[{text:topic.slice(0,52),duration:4},{text:"THE SURPRISING PART",duration:4},{text:"HERE'S WHAT IT MEANS",duration:4},{text:"MOST PEOPLE MISS THIS",duration:4},{text:"REMEMBER THIS",duration:4},{text:"FOLLOW FOR MORE",duration:3}]}}
-async function gemini(topic,skills=[]){
+async function gemini(topic,skills=[],options={}){
 const key=process.env.GEMINI_API_KEY;if(!key)throw new Error("GEMINI_API_KEY is not configured in the Production environment");
 const skillText=Array.isArray(skills)&&skills.length?skills.join(", "):"hook, story, visual, caption";
+const language=String(options.language||"auto");
+const duration=String(options.duration||"auto");
+const visualStyle=String(options.visualStyle||"auto");
 const prompt=`Create a high-retention YouTube Short about: ${topic}.
 Active production skills: ${skillText}.
+Language preference: ${language}. Duration target: ${duration}. Visual style: ${visualStyle}. Respect these preferences when they are not "auto".
 Return ONLY valid JSON with keys title, script, scenes.
 script: choose narration length from topic complexity: roughly 55-90 words for a simple Short, 90-170 for medium, 170-280 for complex. Write the narration and on-screen text in the same natural language as the topic. If the topic is Uzbek, use natural Uzbek (Latin script). If the topic is English, use natural English. Strong hook, fast pacing. Never pad just to make it longer.
 HOOK RULE: First identify the single most important, surprising, useful, or emotionally strongest fact/claim inside the topic. Put that core point into the first spoken sentence or first two short sentences. Do NOT use a generic intro like "Here is a quick Short about..." and do NOT invent a stronger claim than the topic supports. The opening should immediately reveal enough value to stop a swipe, then create a specific open loop: explain why that point is true, what most people miss about it, or what consequence follows. The rest of the Short must pay off that open loop.
@@ -45,7 +49,7 @@ cors(req,res);if(req.method==="OPTIONS")return res.status(204).end();if(req.meth
 
 if(limited(req))return res.status(429).json({error:"Too many requests. Try again in a minute."});
 const topic=clean(req.body?.topic,500);if(!topic)return res.status(400).json({error:"topic is required"});
-try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const content=await gemini(topic,skills);const voice=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,30).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; if(!scenes.length) scenes=[{text:topic.slice(0,42),duration:4,visualPrompt:"clean cinematic vertical composition",effect:"zoom",shots:[]}]; scenes=scenes.slice(0,30);
+try{const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];const options={language:clean(req.body?.language,20)||"auto",duration:clean(req.body?.duration,20)||"auto",visualStyle:clean(req.body?.visualStyle,30)||"auto"};const content=await gemini(topic,skills,options);const voice=await eleven(content.script);let scenes=Array.isArray(content.scenes)?content.scenes.slice(0,30).map(s=>({text:clean(s?.text,60),duration:Math.max(2,Math.min(6,Number(s?.duration)||4)),visualPrompt:clean(s?.visualPrompt,300),effect:["zoom","pan","shake","particles","flash","glow","none"].includes(s?.effect)?s.effect:"zoom"} )).filter(s=>s.text):[]; if(!scenes.length) scenes=[{text:topic.slice(0,42),duration:4,visualPrompt:"clean cinematic vertical composition",effect:"zoom",shots:[]}]; scenes=scenes.slice(0,30);
 scenes=scenes.map((s,si)=>{
   const rawShots=Array.isArray(s.shots)?s.shots:[];
   const targetShots=idealShotCount(s,si);
@@ -74,5 +78,5 @@ scenes=scenes.map((s,si)=>{
   shots[shots.length-1].duration+=target-corrected;
   return {...s,duration:target,shots};
 });
-return res.status(200).json({ok:true,status:"ready",skills,jobId:globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64:voice?.audioBase64||null,voiceAlignment:voice?.alignment||null,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:scenes.length,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:"shot-engine-motion-graphics",nextUpgrade:"provider-backed-images"}});}
+return res.status(200).json({ok:true,status:"ready",options,skills,jobId:globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64:voice?.audioBase64||null,voiceAlignment:voice?.alignment||null,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:scenes.length,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:"shot-engine-motion-graphics",nextUpgrade:"provider-backed-images"}});}
 catch(e){return res.status(502).json({error:e?.message||"Generation failed"})}}
