@@ -31,7 +31,6 @@ for(const model of models){
   if(r?.ok)break;
 }
 if(!r?.ok)throw new Error(lastError);
-const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||"Gemini request failed");
 const raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();if(!raw)throw new Error("Gemini returned an empty response");
 try{const x=JSON.parse(raw);if(!x.script||!Array.isArray(x.scenes))throw 0;return x}catch{throw new Error("Gemini returned invalid JSON")}}
 async function eleven(script){
