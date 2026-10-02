@@ -16,7 +16,21 @@ HOOK RULE: First identify the single most important, surprising, useful, or emot
 scenes: create as many story sections as the topic needs, normally 6-30 sections. Do NOT force a fixed scene count. Simple topics may use 6-10; medium 10-18; complex 18-30. Each scene has text (max 42 chars), duration (2-6 seconds), visualPrompt, effect, and shots (2-6 objects). Shot count must be earned by the scene: use fewer shots for a simple continuous idea and more shots when the narration contains distinct visual beats. Aim for roughly one meaningful visual change every 1.5-2.2 seconds, but never split a single idea just to increase the count. Total Short duration should follow topic complexity: normally 25-45 seconds for simple topics, 45-75 for medium, 75-120 for complex, never over 180 seconds. Each shot has text (max 42 chars), duration (0.7-2.5 seconds), startCue (a short exact phrase from the narration that this shot should visually illustrate), visualPrompt (different concrete visual from the scene), camera (wide, medium, close, macro, overhead, tracking, push-in, pull-out), transition (cut, flash, whip, dissolve), effect (zoom, pan, shake, particles, flash, glow, none). Total shot duration must approximately equal the scene duration. Avoid repeating the same visual or camera consecutively. Change visuals on semantic beats, reveals, claims, reactions, questions, or pattern interrupts—not an arbitrary fixed timer.
 If Hook Master is active, make scene 1 the topic's strongest core point: reveal the important point immediately, then create curiosity about its explanation/consequence. The hook must be derived from the topic/script, not a generic template. If Visual Director is active, make every visualPrompt concrete, cinematic and different from the previous scene. If Retention is active, add a pattern interrupt around scene 3 or 4. If Caption Sync is active, keep scene text punchy and readable.
 No markdown.`;
-const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:3000,responseMimeType:"application/json",thinkingConfig:{thinkingLevel:"low"}}})});
+let r=null,d=null,lastError="Gemini request failed";
+const models=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+for(const model of models){
+  for(let attempt=0;attempt<3;attempt++){
+    r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:3000,responseMimeType:"application/json",thinkingConfig:{thinkingLevel:"low"}}})});
+    d=await r.json();
+    if(r.ok)break;
+    lastError=d?.error?.message||lastError;
+    const code=Number(r.status);
+    if(![408,429,500,502,503,504].includes(code))break;
+    await new Promise(resolve=>setTimeout(resolve,1000*Math.pow(2,attempt)));
+  }
+  if(r?.ok)break;
+}
+if(!r?.ok)throw new Error(lastError);
 const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||"Gemini request failed");
 const raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();if(!raw)throw new Error("Gemini returned an empty response");
 try{const x=JSON.parse(raw);if(!x.script||!Array.isArray(x.scenes))throw 0;return x}catch{throw new Error("Gemini returned invalid JSON")}}
