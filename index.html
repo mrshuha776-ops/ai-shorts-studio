@@ -72,11 +72,10 @@
   <dialog id="settingsDialog">
     <form method="dialog" class="settings-panel" id="settingsForm">
       <div class="section-head"><div><span class="eyebrow">SETTINGS</span><h2>AI Provider Manager</h2></div><button value="cancel" class="icon-btn">×</button></div>
-      <p class="muted">API keys should be configured on the secure backend, not stored in the browser.</p>
-      <label>Gemini<input id="geminiKey" type="text" placeholder="Gemini / Google AI"></label>
-      <label>Text provider<input id="textKey" type="text" placeholder="e.g. OpenAI / Gemini"></label>
-      <label>Voice provider<input id="voiceKey" type="text" placeholder="e.g. ElevenLabs"></label>
-      <label>Visual provider<input id="visualKey" type="text" placeholder="Provider name"></label>
+      <p class="muted">API keys never belong in this page. Configure secrets on the backend; this screen only controls provider labels and routing.</p>
+      <label>Text provider<input id="textKey" type="text" placeholder="Gemini"></label>
+      <label>Voice provider<input id="voiceKey" type="text" placeholder="ElevenLabs (optional)"></label>
+      <label>Visual provider<input id="visualKey" type="text" placeholder="AI visual provider (later)"></label>
       <label>Backend URL<input id="backendUrl" type="url" placeholder="https://your-backend.vercel.app"></label>
       <button value="save" class="primary">Save provider setup</button>
     </form>
