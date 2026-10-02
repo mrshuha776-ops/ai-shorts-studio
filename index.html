@@ -12,18 +12,18 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">✦</span><div><strong>AI Shorts Studio</strong><small>Universal video pipeline</small></div></div>
-      <div class="top-actions"><button class="assistant-btn" id="assistantBtn">✦ AI Assistant</button><button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button></div>
+      <nav class="top-nav"><span>New Video</span><span>Projects</span><button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button></nav>
     </header>
     <main>
       <section class="hero">
         <div class="eyebrow">CREATE A SHORT</div>
         <h1>Turn any idea into a <span>Short.</span></h1>
-        <p>Topic in. Research, script, voice, visuals and render out — one workflow.</p>
+        <p>Write a topic. Studio handles research, script, voice, visuals and export.</p>
         <div class="topic-box">
           <textarea id="topic" rows="3" maxlength="500" placeholder="What should the video be about?&#10;e.g. 3 strange facts about black holes"></textarea>
           <div class="topic-actions"><span id="charCount">0 / 500</span><button id="generateBtn" class="primary">Generate Short <span>→</span></button></div>
         </div>
-        <div class="chips">
+        <div class="quick-options"><label>Language<select id="language"><option value="auto">Auto</option><option value="uz">O‘zbekcha</option><option value="en">English</option><option value="ru">Русский</option></select></label><label>Duration<select id="duration"><option value="auto">Auto</option><option value="30">≈30 sec</option><option value="45">≈45 sec</option><option value="60">≈60 sec</option><option value="90">≈90 sec</option></select></label><label>Visual style<select id="visualStyle"><option value="auto">Auto</option><option value="cinematic">Cinematic</option><option value="documentary">Documentary</option><option value="illustration">Illustration</option></select></label></div><div class="chips">
           <button data-topic="3 surprising facts about space">Space facts</button>
           <button data-topic="Why people remember some dreams">Psychology</button>
           <button data-topic="A futuristic technology explained simply">Future tech</button>
@@ -38,9 +38,9 @@
           <div class="section-head"><div><span class="eyebrow">PREVIEW</span><h2>9:16 canvas</h2></div><div><span class="mini-label">9:16 • WebM / MP4</span><button id="downloadBtn" class="text-btn" disabled>Download Short</button></div></div>
           <div class="phone"><div class="phone-inner"><div id="previewStatic"><div class="preview-badge">AI SHORTS</div><div id="previewTitle">Your video preview</div><div id="previewSub" class="preview-sub">Generate a topic to create a real 9:16 video.</div><div class="preview-play">▶</div></div><video id="previewVideo" class="preview-video" playsinline controls preload="metadata" hidden></video></div></div>
         </div>
-        <div class="card plan-card">
-          <div class="section-head"><div><span class="eyebrow">CONTROL</span><h2>AI Providers</h2></div><button id="openSettings" class="text-btn">Manage</button></div>
-          <p class="muted">Choose which AI handles each stage. Gemini is ready for script and assistant tasks.</p>
+        <div class="card plan-card advanced-card">
+          <div class="section-head"><div><span class="eyebrow">ADVANCED</span><h2>Studio controls</h2></div><button id="openSettings" class="text-btn">Settings</button></div>
+          <p class="muted">Provider routing and production skills stay here. The main workspace remains focused on making the video.</p>
           <div class="provider-row"><span class="provider-icon">G</span><div><strong>Gemini</strong><small id="geminiProvider">Not connected</small></div><span class="dot"></span></div>
           <div class="provider-row"><span class="provider-icon">T</span><div><strong>Text / Script</strong><small id="textProvider">Not connected</small></div><span class="dot"></span></div>
           <div class="provider-row"><span class="provider-icon">V</span><div><strong>Voice</strong><small id="voiceProvider">Not connected</small></div><span class="dot"></span></div>
@@ -57,7 +57,7 @@
         </div>
       </section>
     </main>
-    <footer><span>AI Shorts Studio</span><span>v0.3 • AI Director foundation</span></footer>
+    <footer><span>AI Shorts Studio</span><span>v0.4 • Production workflow foundation</span></footer>
   </div>
 
   <dialog id="assistantDialog">
