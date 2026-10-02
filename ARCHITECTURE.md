@@ -6,13 +6,23 @@ Topic → Director → Research/Script → Scene Plan → Voice → Visual Engin
 
 ## Director contract
 
-The backend returns six normalized scenes. Each scene carries:
+The backend returns an adaptive set of normalized scenes (typically 6–30). Each scene carries:
 - text
 - duration
 - visualPrompt
 - effect
 
 This contract lets us add image, stock-video or AI-video providers without rebuilding the UI.
+
+## Current product direction
+
+The main page is a focused creation workspace: topic, language, duration, visual style, progress, preview and export. Provider names, routing and advanced skills belong behind Settings/Advanced. Browser Canvas remains a fast storyboard/fallback renderer; it is not the long-term production export engine.
+
+## Production target
+
+Topic → Research → Fact Check → Script → Voice → Alignment → Visual Assets → Master Timeline → Render → Quality Check → Preview/Download.
+
+Voice timing is the source of truth for final shot and caption timing. Long-running work should eventually use a persisted job record and resumable stages rather than one browser request. Asset files should live in object storage; the final MP4 should be rendered by a dedicated worker when production export is introduced.
 
 ## Free-first rule
 
@@ -21,12 +31,14 @@ The current renderer is a browser fallback using motion graphics. Real AI visual
 ## Next upgrades
 
 1. Provider-backed AI images per scene
-2. Word-level captions with speech timestamps
-3. FFmpeg 1080×1920 MP4 render worker
-4. Persistent resumable jobs
-5. Asset storage using URLs instead of large base64 payloads
-6. Provider fallback chain
-7. YouTube export/publishing
+2. Persisted job/status model
+3. Research + source/fact-check layer
+4. Word-level captions with speech timestamps
+5. FFmpeg 1080×1920 MP4 render worker
+6. Persistent resumable jobs
+7. Asset storage using URLs instead of large base64 payloads
+8. Provider fallback chain
+9. YouTube export/publishing
 
 ## Reference patterns
 
