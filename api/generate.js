@@ -17,9 +17,9 @@ scenes: create as many story sections as the topic needs, normally 6-30 sections
 If Hook Master is active, make scene 1 the topic's strongest core point: reveal the important point immediately, then create curiosity about its explanation/consequence. The hook must be derived from the topic/script, not a generic template. If Visual Director is active, make every visualPrompt concrete, cinematic and different from the previous scene. If Retention is active, add a pattern interrupt around scene 3 or 4. If Caption Sync is active, keep scene text punchy and readable.
 No markdown.`;
 let r=null,d=null,lastError="Gemini request failed";
-const models=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+const models=["gemini-3.5-flash-lite","gemini-3.6-flash","gemini-3.7-flash","gemini-3.8-flash"];
 for(const model of models){
-  for(let attempt=0;attempt<3;attempt++){
+  for(let attempt=0;attempt<2;attempt++){
     r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:3000,responseMimeType:"application/json",thinkingConfig:{thinkingLevel:"low"}}})});
     d=await r.json();
     if(r.ok)break;
