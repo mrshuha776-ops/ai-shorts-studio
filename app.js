@@ -82,7 +82,19 @@ requestAnimationFrame(draw);const blob=await finished;if(audioCtx)await audioCtx
 async function generate(){
 if(running)return;running=true;const value=topic.value.trim();if(!value){topic.focus();running=false;return}
 $("#generateBtn").disabled=true;$("#downloadBtn").disabled=true;$("#overallStatus").textContent="Creating production plan…";$("#previewTitle").textContent=value.length>72?value.slice(0,69)+"…":value;resetStages();setStage(0,"active");
-try{const base=apiBase();if(!base)throw new Error("Backend URL is not configured");\nconst options={language:language?.value||"auto",duration:duration?.value||"auto",visualStyle:visualStyle?.value||"auto"};\nlet jobId=localStorage.getItem("ai-shorts-current-job")||"";\nlet jobsAvailable=false;\ntry{\n const jobResponse=await fetch(base+"/api/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:value,skills:selectedSkills(),options})});\n const jobData=await jobResponse.json().catch(()=>({}));\n if(jobResponse.ok&&jobData.jobId){\n   jobsAvailable=true;jobId=jobData.jobId;localStorage.setItem("ai-shorts-current-job",jobId);\n   $("#overallStatus").textContent="Job "+jobId.slice(0,8)+" queued…";\n }else{localStorage.removeItem("ai-shorts-current-job");$("#overallStatus").textContent="Generating…";}\n}catch(e){localStorage.removeItem("ai-shorts-current-job");$("#overallStatus").textContent="Generating…";}\nconst response=await fetch(base+"/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:value,skills:selectedSkills(),language:options.language,duration:options.duration,visualStyle:options.visualStyle,jobId})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Generation failed");
+try{const base=apiBase();if(!base)throw new Error("Backend URL is not configured");
+const options={language:language?.value||"auto",duration:duration?.value||"auto",visualStyle:visualStyle?.value||"auto"};
+let jobId=localStorage.getItem("ai-shorts-current-job")||"";
+let jobsAvailable=false;
+try{
+ const jobResponse=await fetch(base+"/api/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:value,skills:selectedSkills(),options})});
+ const jobData=await jobResponse.json().catch(()=>({}));
+ if(jobResponse.ok&&jobData.jobId){
+   jobsAvailable=true;jobId=jobData.jobId;localStorage.setItem("ai-shorts-current-job",jobId);
+   $("#overallStatus").textContent="Job "+jobId.slice(0,8)+" queued…";
+ }else{localStorage.removeItem("ai-shorts-current-job");$("#overallStatus").textContent="Generating…";}
+}catch(e){localStorage.removeItem("ai-shorts-current-job");$("#overallStatus").textContent="Generating…";}
+const response=await fetch(base+"/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:value,skills:selectedSkills(),language:options.language,duration:options.duration,visualStyle:options.visualStyle,jobId})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Generation failed");
 setStage(0,"done");setStage(1,"active");$("#overallStatus").textContent="Building script and scene plan…";setStage(1,"done");setStage(2,"active");setStage(2,"done");
 if(data.audioBase64){setStage(3,"active");$("#overallStatus").textContent="Voice and timing ready";setStage(3,"done")}else {setStage(3,"done");$("#overallStatus").textContent="Voice provider not configured — continuing without narration"}
 setStage(4,"active");$("#overallStatus").textContent=`Preparing ${data.scenes?.reduce((n,s)=>n+(s.shots?.length||0),0)||0} visual cuts…`;$("#previewSub").textContent=data.script?data.script.slice(0,150)+"…":"Storyboard ready";setStage(4,"done");
