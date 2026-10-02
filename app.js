@@ -39,7 +39,8 @@ function syncShotsToVoice(data){
 }
 
 async function renderShort(data){
-setStage(5,"active");data=syncShotsToVoice(data);$("#overallStatus").textContent="Syncing voice → shots → captions…";
+ if(!window.MediaRecorder||typeof HTMLCanvasElement.prototype.captureStream!=="function")throw new Error("This browser does not support video recording. Use the latest Chrome, Edge, or Firefox.");
+ setStage(5,"active");data=syncShotsToVoice(data);$("#overallStatus").textContent="Syncing voice → shots → captions…";
 const canvas=document.createElement("canvas");canvas.width=540;canvas.height=960;const ctx=canvas.getContext("2d");
 const scenes=data.scenes?.length?data.scenes:[{text:data.topic,duration:5,shots:[]}];
 const shots=[];
@@ -47,8 +48,9 @@ for(const scene of scenes){
   const ss=Array.isArray(scene.shots)&&scene.shots.length?scene.shots:[{text:scene.text,duration:scene.duration||4,visualPrompt:scene.visualPrompt||"",camera:"push-in",transition:"cut",effect:scene.effect||"zoom"}];
   ss.forEach((s,i)=>shots.push({...s,sceneText:scene.text,sceneIndex:scenes.indexOf(scene),shotIndex:i}));
 }
-const total=Math.max(shots.reduce((a,s)=>a+Number(s.duration||1),0), data.voiceAlignment?.character_end_times_seconds?.at(-1)||0);let audioEl=null,audioCtx=null,dest=null;
-if(data.audioBase64){audioEl=new Audio("data:audio/mpeg;base64,"+data.audioBase64);audioEl.preload="auto";audioCtx=new AudioContext();dest=audioCtx.createMediaStreamDestination();const source=audioCtx.createMediaElementSource(audioEl);source.connect(dest);source.connect(audioCtx.destination)}
+ const total=Math.max(shots.reduce((a,s)=>a+Number(s.duration||1),0), data.voiceAlignment?.character_end_times_seconds?.at(-1)||0);let audioEl=null,audioCtx=null,dest=null;
+ const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+ if(data.audioBase64&&AudioContextClass){audioEl=new Audio("data:audio/mpeg;base64,"+data.audioBase64);audioEl.preload="auto";audioCtx=new AudioContextClass();dest=audioCtx.createMediaStreamDestination();const source=audioCtx.createMediaElementSource(audioEl);source.connect(dest);source.connect(audioCtx.destination)}
 const stream=canvas.captureStream(30);if(dest)dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
 const mp4Mime=MediaRecorder.isTypeSupported("video/mp4"),webmMime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")?"video/webm;codecs=vp9,opus":"video/webm",mime=mp4Mime?"video/mp4":webmMime,outputExt=mp4Mime?"mp4":"webm";
 const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:5500000});const chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
