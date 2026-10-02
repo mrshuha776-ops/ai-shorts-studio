@@ -1,8 +1,9 @@
+const $=s=>document.querySelector(s);
 const names=[["Topic","Input"],["Plan","AI direction"],["Script","Hook + story"],["Voice","Narration"],["Visuals","Scenes"],["Render","Final 9:16"]];
 const skillInputs=[...document.querySelectorAll("#skills input")];
 const language=$("#language"),duration=$("#duration"),visualStyle=$("#visualStyle");
 skillInputs.forEach(i=>i.addEventListener("change",()=>i.closest(".skill").classList.toggle("active",i.checked)));
-function selectedSkills(){return skillInputs.filter(i=>i.checked).map(i=>i.value)}const $=s=>document.querySelector(s);const topic=$("#topic"),pipeline=$("#pipeline"),dialog=$("#settingsDialog"),assistantDialog=$("#assistantDialog");let running=false,lastVideoUrl="";
+function selectedSkills(){return skillInputs.filter(i=>i.checked).map(i=>i.value)}const topic=$("#topic"),pipeline=$("#pipeline"),dialog=$("#settingsDialog"),assistantDialog=$("#assistantDialog");let running=false,lastVideoUrl="";
 names.forEach((x,i)=>pipeline.insertAdjacentHTML("beforeend",`<div class="stage" id="stage-${i}"><div class="num">${i+1}</div><strong>${x[0]}</strong><small>${x[1]}</small></div>`));
 topic.addEventListener("input",()=>$("#charCount").textContent=`${topic.value.length} / 500`);
 document.querySelectorAll("[data-topic]").forEach(b=>b.onclick=()=>{topic.value=b.dataset.topic;topic.dispatchEvent(new Event("input"));topic.focus()});
