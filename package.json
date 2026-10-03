@@ -10,6 +10,6 @@
     "zod": "^3.25.76"
   },
   "scripts": {
-    "check": "node --check app.js && for f in api/*.js; do node --check "$f"; done"
+    "check": "node --check app.js && for f in api/*.js; do node --check \"$f\"; done"
   }
 }
