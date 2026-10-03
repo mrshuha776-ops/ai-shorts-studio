@@ -41,26 +41,26 @@ function syncShotsToVoice(data){
 async function renderShort(data){
  if(!window.MediaRecorder||typeof HTMLCanvasElement.prototype.captureStream!=="function")throw new Error("This browser does not support video recording. Use the latest Chrome, Edge, or Firefox.");
  setStage(5,"active");data=syncShotsToVoice(data);$("#overallStatus").textContent="Syncing voice → shots → captions…";
-const canvas=document.createElement("canvas");canvas.width=540;canvas.height=960;const ctx=canvas.getContext("2d");
+ const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1920;const ctx=canvas.getContext("2d");ctx.scale(2,2);ctx.imageSmoothingEnabled=true;
 const scenes=data.scenes?.length?data.scenes:[{text:data.topic,duration:5,shots:[]}];
 const shots=[];
 for(const scene of scenes){
   const ss=Array.isArray(scene.shots)&&scene.shots.length?scene.shots:[{text:scene.text,duration:scene.duration||4,visualPrompt:scene.visualPrompt||"",camera:"push-in",transition:"cut",effect:scene.effect||"zoom"}];
   ss.forEach((s,i)=>shots.push({...s,sceneText:scene.text,sceneIndex:scenes.indexOf(scene),shotIndex:i}));
 }
- const total=Math.max(shots.reduce((a,s)=>a+Number(s.duration||1),0), data.voiceAlignment?.character_end_times_seconds?.at(-1)||0);let audioEl=null,audioCtx=null,dest=null;
+ const shotTotal=shots.reduce((a,s)=>a+Number(s.duration||1),0),voiceTotal=Number(data.voiceAlignment?.character_end_times_seconds?.at(-1)||0),total=Math.max(shotTotal,voiceTotal);if(shots.length&&total>shotTotal)shots[shots.length-1].duration+=total-shotTotal;let audioEl=null,audioCtx=null,dest=null;
  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
  if(data.audioBase64&&AudioContextClass){audioEl=new Audio("data:audio/mpeg;base64,"+data.audioBase64);audioEl.preload="auto";audioCtx=new AudioContextClass();dest=audioCtx.createMediaStreamDestination();const source=audioCtx.createMediaElementSource(audioEl);source.connect(dest);source.connect(audioCtx.destination)}
 const stream=canvas.captureStream(30);if(dest)dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
 const mp4Mime=MediaRecorder.isTypeSupported("video/mp4"),webmMime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")?"video/webm;codecs=vp9,opus":"video/webm",mime=mp4Mime?"video/mp4":webmMime,outputExt=mp4Mime?"mp4":"webm";
-const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:5500000});const chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+ const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:10000000});const chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
 const finished=new Promise(resolve=>rec.onstop=()=>resolve(new Blob(chunks,{type:mime})));
 const started=performance.now();rec.start(200);if(audioEl){await audioCtx.resume();audioEl.play().catch(()=>{})}
 const particles=Array.from({length:48},(_,i)=>({x:(i*97)%540,y:(i*173)%960,r:2+(i%4),speed:.15+(i%5)*.07,phase:i*1.7}));
 function wrap(text,max=450){const words=String(text).split(/\s+/),lines=[];let line="";for(const w of words){const t=line?line+" "+w:w;if(ctx.measureText(t).width>max&&line){lines.push(line);line=w}else line=t}if(line)lines.push(line);return lines}
 function draw(t){
  const elapsed=(t-started)/1000;if(elapsed>=total){rec.stop();stream.getTracks().forEach(x=>x.stop());return}
- let acc=0,idx=0;for(let i=0;i<shots.length;i++){if(elapsed>=acc+Number(shots[i].duration||1))acc+=Number(shots[i].duration||1);else{idx=i;break}}
+  let acc=0,idx=shots.length-1;for(let i=0;i<shots.length;i++){const end=acc+Number(shots[i].duration||1);if(elapsed<end){idx=i;break}acc=end}
  const shot=shots[idx],dur=Number(shot.duration||1),local=elapsed-acc,p=Math.min(1,local/dur),hue=(shot.sceneIndex*67+shot.shotIndex*31+215)%360;
  ctx.save();
  let sx=0,sy=0;if(shot.effect==="shake"){sx=Math.sin(t/28)*4;sy=Math.cos(t/24)*4}ctx.translate(sx,sy);
