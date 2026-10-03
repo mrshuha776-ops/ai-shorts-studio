@@ -42,11 +42,12 @@ async function renderShort(data){
  if(!window.MediaRecorder||typeof HTMLCanvasElement.prototype.captureStream!=="function")throw new Error("This browser does not support video recording. Use the latest Chrome, Edge, or Firefox.");
  setStage(5,"active");data=syncShotsToVoice(data);$("#overallStatus").textContent="Syncing voice → shots → captions…";
  const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1920;const ctx=canvas.getContext("2d");ctx.scale(2,2);ctx.imageSmoothingEnabled=true;
-const scenes=data.scenes?.length?data.scenes:[{text:data.topic,duration:5,shots:[]}];
-const shots=[];
-for(const scene of scenes){
-  const ss=Array.isArray(scene.shots)&&scene.shots.length?scene.shots:[{text:scene.text,duration:scene.duration||4,visualPrompt:scene.visualPrompt||"",camera:"push-in",transition:"cut",effect:scene.effect||"zoom"}];
-  ss.forEach((s,i)=>shots.push({...s,sceneText:scene.text,sceneIndex:scenes.indexOf(scene),shotIndex:i}));
+ const scenes=data.scenes?.length?data.scenes:[{text:data.topic,duration:5,shots:[]}];
+ const visualImages=await Promise.all(scenes.map((_,index)=>new Promise(resolve=>{const src=data.visuals?.find(v=>v.sceneIndex===index)?.dataUrl;if(!src)return resolve(null);const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=src})));
+	const shots=[];
+	for(const [sceneIndex,scene] of scenes.entries()){
+	  const ss=Array.isArray(scene.shots)&&scene.shots.length?scene.shots:[{text:scene.text,duration:scene.duration||4,visualPrompt:scene.visualPrompt||"",camera:"push-in",transition:"cut",effect:scene.effect||"zoom"}];
+	  ss.forEach((s,i)=>shots.push({...s,image:visualImages[sceneIndex],sceneText:scene.text,sceneIndex,shotIndex:i}));
 }
  const shotTotal=shots.reduce((a,s)=>a+Number(s.duration||1),0),voiceTotal=Number(data.voiceAlignment?.character_end_times_seconds?.at(-1)||0),total=Math.max(shotTotal,voiceTotal);if(shots.length&&total>shotTotal)shots[shots.length-1].duration+=total-shotTotal;let audioEl=null,audioCtx=null,dest=null;
  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
@@ -57,14 +58,16 @@ const mp4Mime=MediaRecorder.isTypeSupported("video/mp4"),webmMime=MediaRecorder.
 const finished=new Promise(resolve=>rec.onstop=()=>resolve(new Blob(chunks,{type:mime})));
 const started=performance.now();rec.start(200);if(audioEl){await audioCtx.resume();audioEl.play().catch(()=>{})}
 const particles=Array.from({length:48},(_,i)=>({x:(i*97)%540,y:(i*173)%960,r:2+(i%4),speed:.15+(i%5)*.07,phase:i*1.7}));
-function wrap(text,max=450){const words=String(text).split(/\s+/),lines=[];let line="";for(const w of words){const t=line?line+" "+w:w;if(ctx.measureText(t).width>max&&line){lines.push(line);line=w}else line=t}if(line)lines.push(line);return lines}
+ function wrap(text,max=450){const words=String(text).split(/\s+/),lines=[];let line="";for(const w of words){const t=line?line+" "+w:w;if(ctx.measureText(t).width>max&&line){lines.push(line);line=w}else line=t}if(line)lines.push(line);return lines}
+ function drawCover(img){const scale=Math.max(540/img.naturalWidth,960/img.naturalHeight),w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,(540-w)/2,(960-h)/2,w,h)}
 function draw(t){
  const elapsed=(t-started)/1000;if(elapsed>=total){rec.stop();stream.getTracks().forEach(x=>x.stop());return}
   let acc=0,idx=shots.length-1;for(let i=0;i<shots.length;i++){const end=acc+Number(shots[i].duration||1);if(elapsed<end){idx=i;break}acc=end}
  const shot=shots[idx],dur=Number(shot.duration||1),local=elapsed-acc,p=Math.min(1,local/dur),hue=(shot.sceneIndex*67+shot.shotIndex*31+215)%360;
  ctx.save();
  let sx=0,sy=0;if(shot.effect==="shake"){sx=Math.sin(t/28)*4;sy=Math.cos(t/24)*4}ctx.translate(sx,sy);
- const g=ctx.createLinearGradient(0,0,540,960);g.addColorStop(0,`hsl(${hue} 72% 7%)`);g.addColorStop(.5,`hsl(${(hue+35)%360} 80% 15%)`);g.addColorStop(1,`hsl(${(hue+75)%360} 85% 27%)`);ctx.fillStyle=g;ctx.fillRect(0,0,540,960);
+	 const g=ctx.createLinearGradient(0,0,540,960);g.addColorStop(0,`hsl(${hue} 72% 7%)`);g.addColorStop(.5,`hsl(${(hue+35)%360} 80% 15%)`);g.addColorStop(1,`hsl(${(hue+75)%360} 85% 27%)`);ctx.fillStyle=g;ctx.fillRect(0,0,540,960);
+	 if(shot.image)drawCover(shot.image);ctx.fillStyle="rgba(4,7,16,.24)";ctx.fillRect(0,0,540,960);
  const cam=shot.camera||"push-in",motion=cam==="pull-out"?1-p:p,zoom=1+(cam==="wide"?.025:.04)*motion;
  ctx.translate(270,480);ctx.scale(zoom,zoom);ctx.translate(-270,-480);
  particles.forEach(q=>{const x=(q.x+Math.sin(t/1600+q.phase)*38+540)%540,y=(q.y-t*q.speed*.05+9600)%960;ctx.globalAlpha=.12+(q.r%3)*.08;ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(x,y,q.r,0,Math.PI*2);ctx.fill()});ctx.globalAlpha=1;

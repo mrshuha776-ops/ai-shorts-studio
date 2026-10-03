@@ -40,11 +40,27 @@ if(!r?.ok)throw new Error(lastError);
 const raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();if(!raw)throw new Error("Gemini returned an empty response");
 try{const x=JSON.parse(raw);if(!x.script||!Array.isArray(x.scenes))throw 0;return x}catch{throw new Error("Gemini returned invalid JSON")}}
 async function eleven(script){
-const key=process.env.ELEVENLABS_API_KEY;if(!key)return null;
-const voice=process.env.ELEVENLABS_VOICE_ID||"JBFqnCBsd6RMkjVDRZzb";
-const r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`,{method:"POST",headers:{"xi-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({text:script,model_id:"eleven_multilingual_v2"})});
-if(!r.ok)throw new Error("ElevenLabs voice generation failed");
-const d=await r.json();return {audioBase64:d.audio_base64||null,alignment:d.alignment||null};
+	const key=process.env.ELEVENLABS_API_KEY;if(!key)return null;
+	const voice=process.env.ELEVENLABS_VOICE_ID||"JBFqnCBsd6RMkjVDRZzb";
+	const r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`,{method:"POST",headers:{"xi-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({text:script,model_id:"eleven_multilingual_v2"})});
+	if(!r.ok)throw new Error("ElevenLabs voice generation failed");
+	const d=await r.json();return {audioBase64:d.audio_base64||null,alignment:d.alignment||null};
+	}
+async function generateSceneImage(topic,scene,style,index){
+ const key=process.env.GEMINI_API_KEY;if(!key)return null;
+ const prompt=`Create one cinematic, topic-specific vertical 9:16 image for a YouTube Short. Topic: ${topic}. Scene ${index+1}: ${scene.text}. Visual direction: ${scene.visualPrompt||scene.text}. Style: ${style||"cinematic documentary"}. Make the subject concrete, visually clear, realistic and emotionally engaging. No text, no subtitles, no logos, no watermark, no collage, no split screen.`;
+ try{
+  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({model:"gemini-3.1-flash-image",input:prompt,response_format:{type:"image",mime_type:"image/jpeg",aspect_ratio:"9:16",image_size:"1K"}})});
+  const d=await r.json();if(!r.ok)return null;
+  const output=d?.output_image||d?.outputs?.find(x=>x?.type==="image"||x?.image)?.image||d?.outputs?.find(x=>x?.data);
+  const b64=output?.data||output?.image?.data;if(!b64)return null;
+  return {sceneIndex:index,dataUrl:`data:${output?.mime_type||"image/jpeg"};base64,${b64}`};
+ }catch{return null}
+}
+async function generateSceneVisuals(topic,scenes,style){
+ const limit=Math.min(scenes.length,Number(process.env.MAX_IMAGE_SCENES)||8);
+ const visuals=await Promise.all(scenes.slice(0,limit).map((scene,index)=>generateSceneImage(topic,scene,style,index)));
+ return visuals.filter(Boolean);
 }
 export default async function handler(req,res){
 cors(req,res);if(req.method==="OPTIONS")return res.status(204).end();if(req.method!=="POST")return res.status(405).json({error:"POST required"});
@@ -71,8 +87,9 @@ try{
   const sum=shots.reduce((a,q)=>a+q.duration,0),target=Number(s.duration)||4,factor=target/sum;shots=shots.map(q=>({...q,duration:Math.max(.7,q.duration*factor)}));const corrected=shots.reduce((a,q)=>a+q.duration,0);shots[shots.length-1].duration+=target-corrected;return {...s,duration:target,shots};
  });
  const requestedSeconds=Number(options.duration);if(Number.isFinite(requestedSeconds)&&requestedSeconds>=15&&requestedSeconds<=180){const sourceTotal=scenes.reduce((a,s)=>a+Number(s.duration||1),0);let used=0;scenes=scenes.map((s,si)=>{const target=si===scenes.length-1?requestedSeconds-used:requestedSeconds*(Number(s.duration||1)/sourceTotal);used+=target;const shotTotal=s.shots.reduce((a,q)=>a+Number(q.duration||1),0);let shotUsed=0;const shots=s.shots.map((q,qi)=>{const shotDuration=qi===s.shots.length-1?target-shotUsed:target*(Number(q.duration||1)/shotTotal);shotUsed+=shotDuration;return {...q,duration:shotDuration}});return {...s,duration:target,shots};});}
- const responseJobId=jobId||globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`;
- const payload={ok:true,status:"ready",options,skills,jobId:responseJobId,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,audioBase64:voice?.audioBase64||null,voiceAlignment:voice?.alignment||null,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:scenes.length,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:"shot-engine-motion-graphics",nextUpgrade:"provider-backed-images"}};
+ const visuals=await generateSceneVisuals(topic,scenes,options.visualStyle);
+	 const responseJobId=jobId||globalThis.crypto?.randomUUID?.()||`job-${Date.now()}`;
+	 const payload={ok:true,status:"ready",options,skills,jobId:responseJobId,topic,title:clean(content.title,100),script:clean(content.script,1400),scenes,visuals,audioBase64:voice?.audioBase64||null,voiceAlignment:voice?.alignment||null,format:"adaptive",render:"client-canvas",director:{stage:"directed",sceneCount:scenes.length,shotCount:scenes.reduce((n,s)=>n+s.shots.length,0),visualMode:visuals.length?"ai-scene-images-with-motion":"shot-engine-motion-graphics",nextUpgrade:"provider-backed-video-clips"}};
  if(jobId&&dbConfigured())await updateJob(jobId,{status:"ready",current_step:"render",result:{title:payload.title,script:payload.script,scenes:payload.scenes,options,skills,format:payload.format,render:payload.render,director:payload.director},updated_at:new Date().toISOString()});
  return res.status(200).json(payload);
 }catch(e){
