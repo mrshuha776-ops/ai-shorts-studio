@@ -23,6 +23,8 @@ The free-first visual engine uses cinematic browser motion graphics and optional
 - Server-side rate limiting and CORS protection
 - Optional ElevenLabs narration with timestamp alignment
 - Supabase-backed resumable job records
+- Persistent FFmpeg worker with 1080×1920 MP4 output
+- Viral, documentary and minimal caption themes
 
 ## Pipeline
 
@@ -39,3 +41,7 @@ Real provider credentials are handled only server-side. The browser never receiv
 3. Configure `GEMINI_API_KEY`, `ELEVENLABS_API_KEY` (optional), `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `FRONTEND_ORIGIN` in Vercel.
 4. Run `supabase/jobs.sql` once if persistent jobs are needed.
 5. Set the Vercel URL in Settings → Backend URL when using a custom deployment.
+
+## Render worker
+
+Build and run the persistent worker with `docker build -t ai-shorts-render-worker worker && docker run -p 8080:8080 -e WORKER_TOKEN=change-me ai-shorts-render-worker`. Configure the Vercel API with `RENDER_WORKER_URL` and the same `RENDER_WORKER_TOKEN`. The worker accepts a normalized scene payload at `/render`, creates word/shot-timed SRT captions, and serves finished MP4 artifacts from `/artifacts/:jobId.mp4`.

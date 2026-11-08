@@ -73,7 +73,8 @@ const topic=clean(req.body?.topic,500);if(!topic)return res.status(400).json({er
 const jobId=clean(req.body?.jobId,100)||null;
 try{
  const skills=Array.isArray(req.body?.skills)?req.body.skills.slice(0,8).map(x=>clean(x,30)):[];
- const options={language:clean(req.body?.language,20)||"auto",duration:clean(req.body?.duration,20)||"auto",visualStyle:clean(req.body?.visualStyle,30)||"auto"};
+	 const captionTheme=["viral","documentary","minimal"].includes(req.body?.captionTheme)?req.body.captionTheme:"viral";
+	 const options={language:clean(req.body?.language,20)||"auto",duration:clean(req.body?.duration,20)||"auto",visualStyle:clean(req.body?.visualStyle,30)||"auto",captionTheme};
  if(jobId&&dbConfigured())await updateJob(jobId,{status:"running",current_step:"script",updated_at:new Date().toISOString()});
  const content=await gemini(topic,skills,options);
  if(jobId&&dbConfigured())await updateJob(jobId,{current_step:"voice",updated_at:new Date().toISOString()});
