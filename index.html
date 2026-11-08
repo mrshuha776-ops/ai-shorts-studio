@@ -33,6 +33,17 @@
         <div class="section-head"><div><span class="eyebrow">PIPELINE</span><h2>Production progress</h2></div><span id="overallStatus" class="status-pill">Ready</span></div>
         <div id="pipeline" class="pipeline"></div>
       </section>
+      <section class="card viral-card">
+        <div class="section-head"><div><span class="eyebrow">VIRAL LAB</span><h2>Hook & retention optimizer</h2></div><button id="analyzeViralBtn" class="text-btn">Analyze script</button></div>
+        <div class="viral-grid">
+          <div class="viral-score-box"><span class="score-label">VIRAL SCORE</span><strong id="viralScore">—</strong><small id="viralTier">Generate a Short to analyze it.</small></div>
+          <div id="viralDimensions" class="viral-dimensions"><div class="muted">Hook strength, pacing, curiosity, clarity and CTA will appear here.</div></div>
+        </div>
+        <div class="viral-subhead"><strong>Hook A/B variants</strong><small>Choose one before creating full variants.</small></div>
+        <div id="hookVariants" class="hook-variants"><div class="muted">Five topic-specific hooks will appear after analysis.</div></div>
+        <div class="viral-subhead"><strong>Retention timeline</strong><small>Pattern interrupts are placed on semantic beats.</small></div>
+        <div id="retentionTimeline" class="retention-timeline"><div class="muted">Timeline is generated from the scene plan.</div></div>
+      </section>
       <section class="grid">
         <div class="card preview-card">
           <div class="section-head"><div><span class="eyebrow">PREVIEW</span><h2>9:16 canvas</h2></div><div><span class="mini-label">1080×1920 • WebM / MP4</span><button id="downloadBtn" class="text-btn" disabled>Download Short</button></div></div>
@@ -80,6 +91,6 @@
       <button value="save" class="primary">Save provider setup</button>
     </form>
   </dialog>
-  <script src="app.js?v=0.5.1"></script>
+  <script src="app.js?v=0.6.0"></script>
 </body>
 </html>

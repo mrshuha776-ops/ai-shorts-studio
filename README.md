@@ -25,6 +25,9 @@ The free-first visual engine uses cinematic browser motion graphics and optional
 - Supabase-backed resumable job records
 - Persistent FFmpeg worker with 1080×1920 MP4 output
 - Viral, documentary and minimal caption themes
+- Viral Lab with explainable 0–100 scoring
+- Five topic-specific hook variants for A/B testing
+- Scene-based retention timeline with pattern-interrupt markers
 
 ## Pipeline
 
