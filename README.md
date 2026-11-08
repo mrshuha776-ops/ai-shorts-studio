@@ -2,11 +2,11 @@
 
 Mobile-first foundation for a universal AI Shorts production workflow.
 
-## v0.3 — AI Director foundation
+## v1.0 — AI Director MVP
 
 Topic → Director → Scene Plan → Voice → Visual Engine → Render.
 
-The free-first visual engine currently uses cinematic browser motion graphics. Provider-backed AI visuals are the next adapter, not a hard dependency.
+The free-first visual engine uses cinematic browser motion graphics and optional provider-backed scene images. The app remains usable in offline demo mode when provider credentials are not configured.
 
 ## Current stage
 
@@ -19,6 +19,10 @@ The free-first visual engine currently uses cinematic browser motion graphics. P
 - Production Skills sent to backend
 - MP4 MediaRecorder when supported, WebM fallback
 - GitHub Pages deployment workflow
+- Offline storyboard fallback when Gemini is unavailable
+- Server-side rate limiting and CORS protection
+- Optional ElevenLabs narration with timestamp alignment
+- Supabase-backed resumable job records
 
 ## Pipeline
 
@@ -26,18 +30,12 @@ Topic → Research → Script → Voice → Visuals → Render
 
 ## Important
 
-The current frontend is a prototype. API keys are **not** sent to an AI provider from this static site. Real provider credentials should be handled server-side in the next backend stage.
+Real provider credentials are handled only server-side. The browser never receives API keys.
 
-## Roadmap
+## Deploy
 
-1. Deploy the frontend
-2. Add secure backend
-3. Add research provider
-4. Add script generation
-5. Add voice provider
-6. Add provider-backed visual generation
-7. Add word-level captions
-8. Add FFmpeg 1080×1920 render worker
-9. Add persistent resumable jobs
-7. Add render queue
-8. Add job history and downloadable outputs
+1. Deploy this repository to GitHub Pages using the included workflow.
+2. Deploy the `/api` functions to Vercel.
+3. Configure `GEMINI_API_KEY`, `ELEVENLABS_API_KEY` (optional), `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `FRONTEND_ORIGIN` in Vercel.
+4. Run `supabase/jobs.sql` once if persistent jobs are needed.
+5. Set the Vercel URL in Settings → Backend URL when using a custom deployment.

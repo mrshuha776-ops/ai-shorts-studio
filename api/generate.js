@@ -1,14 +1,15 @@
 import {dbConfigured,updateJob} from "./_db.js";
 
 const buckets=globalThis.__aiShortsGenerateRate||new Map();globalThis.__aiShortsGenerateRate=buckets;
-function cors(req,res){const defaults=["https://mrshuha776-ops.github.io","https://ai-shorts-studio-rust.vercel.app"];const configured=String(process.env.FRONTEND_ORIGIN||"").split(",").map(x=>x.trim()).filter(Boolean);const origins=[...new Set([...configured,...defaults])];const origin=String(req.headers.origin||"");let allowed=origins.includes(origin)?origin:"";try{const u=new URL(origin);if(!allowed&&u.protocol==="https:"&&u.hostname.endsWith(".vercel.app")&&u.hostname.startsWith("ai-shorts-studio-"))allowed=origin;}catch{}if(allowed)res.setHeader("Access-Control-Allow-Origin",allowed);res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
+function cors(req,res){const defaults=["https://mrshuha776-ops.github.io","https://ai-shorts-studio-rust.vercel.app"];const configured=String(process.env.FRONTEND_ORIGIN||"").split(",").map(x=>{try{return new URL(x.trim()).origin}catch{return x.trim()}}).filter(Boolean);const origins=[...new Set([...configured,...defaults])];const origin=String(req.headers.origin||"");let allowed=origins.includes(origin)?origin:"";try{const u=new URL(origin);if(!allowed&&u.protocol==="https:"&&u.hostname.endsWith(".vercel.app")&&u.hostname.startsWith("ai-shorts-studio-"))allowed=origin;}catch{}if(allowed)res.setHeader("Access-Control-Allow-Origin",allowed);res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");}
 function limited(req){const key=String(req.headers["x-forwarded-for"]||req.headers["x-real-ip"]||"unknown").split(",")[0].trim();const now=Date.now(),a=(buckets.get(key)||[]).filter(t=>now-t<60000);if(a.length>=5){buckets.set(key,a);return true}a.push(now);buckets.set(key,a);return false}
 function clean(s,max){return String(s||"").trim().slice(0,max)}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 function idealShotCount(scene, index){const duration=Number(scene?.duration)||4;const text=String(scene?.text||"");const words=text.split(/\s+/).filter(Boolean).length;const density=words>=11?1:words<=5?-1:0;const base=Math.round(duration/1.8);const hook=index===0?1:0;const count=base+density+hook;return clamp(count,duration<2.4?2:3,Math.min(6,Math.max(2,Math.ceil(duration/0.85))))}
 function fallback(topic){return {title:topic.slice(0,70),script:`Here is a quick Short about ${topic}. Stay to the end for the key idea. The most important thing to understand is that ${topic} can be explained simply. Think about the surprising detail, the real-world effect, and why it matters. That is the part most people miss.`,scenes:[{text:topic.slice(0,52),duration:4},{text:"THE SURPRISING PART",duration:4},{text:"HERE'S WHAT IT MEANS",duration:4},{text:"MOST PEOPLE MISS THIS",duration:4},{text:"REMEMBER THIS",duration:4},{text:"FOLLOW FOR MORE",duration:3}]}}
 async function gemini(topic,skills=[],options={}){
-const key=process.env.GEMINI_API_KEY;if(!key)throw new Error("GEMINI_API_KEY is not configured in the Production environment");
+	const key=process.env.GEMINI_API_KEY;
+	if(!key||key.length<20)return fallback(topic);
 const skillText=Array.isArray(skills)&&skills.length?skills.join(", "):"hook, story, visual, caption";
 const language=String(options.language||"auto");
 const duration=String(options.duration||"auto");
@@ -23,7 +24,7 @@ scenes: create as many story sections as the topic needs, normally 6-30 sections
 If Hook Master is active, make scene 1 the topic's strongest core point: reveal the important point immediately, then create curiosity about its explanation/consequence. The hook must be derived from the topic/script, not a generic template. If Visual Director is active, make every visualPrompt concrete, cinematic and different from the previous scene. If Retention is active, add a pattern interrupt around scene 3 or 4. If Caption Sync is active, keep scene text punchy and readable.
 No markdown.`;
 let r=null,d=null,lastError="Gemini request failed";
-const models=["gemini-3.5-flash-lite","gemini-3.6-flash","gemini-3.7-flash","gemini-3.8-flash"];
+	const models=["gemini-2.5-flash","gemini-2.0-flash"];
 for(const model of models){
   for(let attempt=0;attempt<2;attempt++){
     r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:3000,responseMimeType:"application/json",thinkingConfig:{thinkingLevel:"low"}}})});
@@ -36,7 +37,10 @@ for(const model of models){
   }
   if(r?.ok)break;
 }
-if(!r?.ok)throw new Error(lastError);
+	if(!r?.ok){
+		if(process.env.ALLOW_DEMO_FALLBACK!=="false")return fallback(topic);
+		throw new Error(lastError);
+	}
 const raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();if(!raw)throw new Error("Gemini returned an empty response");
 try{const x=JSON.parse(raw);if(!x.script||!Array.isArray(x.scenes))throw 0;return x}catch{throw new Error("Gemini returned invalid JSON")}}
 async function eleven(script){

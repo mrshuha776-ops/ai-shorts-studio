@@ -1,1 +1,22 @@
-create extension if not exists pgcrypto;\ncreate table if not exists public.jobs (\n  id uuid primary key,\n  topic text not null,\n  status text not null default 'queued' check (status in ('queued','running','ready','failed','cancelled')),\n  current_step text not null default 'topic',\n  options jsonb not null default '{}'::jsonb,\n  skills jsonb not null default '[]'::jsonb,\n  result jsonb,\n  error_code text,\n  error_message text,\n  created_at timestamptz not null default now(),\n  updated_at timestamptz not null default now()\n);\ncreate index if not exists jobs_status_updated_idx on public.jobs(status,updated_at desc);\nalter table public.jobs enable row level security;\n-- Backend-only table: no anon/authenticated grants. The Vercel backend uses the Supabase secret key.\nrevoke all on public.jobs from anon, authenticated;\ngrant all on public.jobs to service_role;
+create extension if not exists pgcrypto;
+
+create table if not exists public.jobs (
+  id uuid primary key,
+  topic text not null,
+  status text not null default 'queued' check (status in ('queued','running','ready','failed','cancelled')),
+  current_step text not null default 'topic',
+  options jsonb not null default '{}'::jsonb,
+  skills jsonb not null default '[]'::jsonb,
+  result jsonb,
+  error_code text,
+  error_message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists jobs_status_updated_idx
+  on public.jobs(status, updated_at desc);
+
+alter table public.jobs enable row level security;
+revoke all on public.jobs from anon, authenticated;
+grant all on public.jobs to service_role;
