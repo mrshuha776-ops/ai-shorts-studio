@@ -24,6 +24,8 @@ The free-first visual engine uses cinematic browser motion graphics and optional
 - Optional ElevenLabs narration with timestamp alignment
 - Supabase-backed resumable job records
 - Persistent FFmpeg worker with 1080×1920 MP4 output
+- Word-level captions from voice alignment
+- Loudness normalization and automated render quality gates
 - Viral, documentary and minimal caption themes
 - Viral Lab with explainable 0–100 scoring
 - Five topic-specific hook variants for A/B testing

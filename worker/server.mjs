@@ -41,6 +41,16 @@ function run(command, args) {
     child.on('close', code => code === 0 ? resolve() : reject(new Error(stderr.slice(-3000) || `ffmpeg exited ${code}`)));
   });
 }
+function capture(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {stdio: ['ignore', 'pipe', 'pipe']});
+    let stdout = '', stderr = '';
+    child.stdout.on('data', x => { stdout += x.toString(); });
+    child.stderr.on('data', x => { stderr += x.toString(); });
+    child.on('error', reject);
+    child.on('close', code => code === 0 ? resolve(stdout) : reject(new Error(stderr.slice(-2000) || `command exited ${code}`)));
+  });
+}
 function flattenShots(payload) {
   const scenes = Array.isArray(payload.scenes) ? payload.scenes : [];
   const shots = [];
@@ -69,6 +79,19 @@ function makeSrt(shots) {
     return `${i + 1}\n${srtTime(start)} --> ${srtTime(at)}\n${shot.text}\n`;
   }).join('\n');
 }
+function makeWordSrt(payload, fallbackShots) {
+  const alignment = payload.voiceAlignment, script = String(payload.script || '').trim();
+  if (!alignment?.characters?.length || !alignment.character_start_times_seconds?.length || !script) return makeSrt(fallbackShots);
+  const starts = alignment.character_start_times_seconds, ends = alignment.character_end_times_seconds || [], cues = [];
+  const re = /\S+/g; let match;
+  while ((match = re.exec(script))) {
+    const startIndex = match.index, endIndex = Math.min(starts.length - 1, startIndex + match[0].length - 1);
+    if (startIndex >= starts.length) continue;
+    const start = Number(starts[startIndex]) || 0, end = Number(ends[endIndex] || starts[Math.min(starts.length - 1, endIndex + 1)] || start + .25);
+    cues.push(`${cues.length + 1}\n${srtTime(start)} --> ${srtTime(Math.max(start + .12, end))}\n${match[0]}\n`);
+  }
+  return cues.length ? cues.join('\n') : makeSrt(fallbackShots);
+}
 function colorForFilter(color) {
   const match = /hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/.exec(color);
   if (!match) return '0x111827';
@@ -84,7 +107,7 @@ async function render(payload) {
   const shots = flattenShots(payload);
   const srt = join(dir, 'captions.srt');
   const output = join(dir, 'short.mp4');
-  await writeFile(srt, makeSrt(shots), 'utf8');
+  await writeFile(srt, makeWordSrt(payload, shots), 'utf8');
   const inputs = [];
   for (const shot of shots) inputs.push('-f', 'lavfi', '-i', `color=c=${colorForFilter(shot.color)}:s=1080x1920:r=30:d=${shot.duration}`);
   const labels = shots.map((_, i) => `[${i}:v]`).join('');
@@ -96,14 +119,18 @@ async function render(payload) {
     const audio = join(dir, 'voice.mp3');
     await writeFile(audio, Buffer.from(String(payload.audioBase64), 'base64'));
     args.push('-i', audio);
-    args.push('-filter_complex', filter, '-map', '[v]', '-map', `${shots.length}:a:0`, '-c:a', 'aac', '-shortest');
+    args.push('-filter_complex', filter, '-map', '[v]', '-map', `${shots.length}:a:0`, '-c:a', 'aac', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-shortest');
   } else {
     args.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100');
     args.push('-filter_complex', filter, '-map', '[v]', '-map', `${shots.length}:a:0`, '-t', String(shots.reduce((a, x) => a + x.duration, 0)), '-c:a', 'aac');
   }
   args.push('-c:v', 'libx264', '-preset', process.env.FFMPEG_PRESET || 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', output);
   await run('ffmpeg', ['-y', ...args]);
-  return {id, output, duration: shots.reduce((a, x) => a + x.duration, 0), shotCount: shots.length};
+  const probe = JSON.parse(await capture('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,codec_name,width,height', '-of', 'json', output]));
+  const streams = probe.streams || [], video = streams.find(x => x.codec_type === 'video'), audioStream = streams.find(x => x.codec_type === 'audio');
+  const quality = {passed: Boolean(video && video.width === 1080 && video.height === 1920 && audioStream), checks: {vertical1080: Boolean(video && video.width === 1080 && video.height === 1920), audioPresent: Boolean(audioStream), durationSeconds: Number(probe.format?.duration || 0)}};
+  if (!quality.passed) throw new Error(`quality gate failed: ${JSON.stringify(quality.checks)}`);
+  return {id, output, duration: shots.reduce((a, x) => a + x.duration, 0), shotCount: shots.length, quality};
 }
 
 const server = http.createServer(async (req, res) => {
@@ -114,7 +141,7 @@ const server = http.createServer(async (req, res) => {
       const payload = await body(req);
       if (!Array.isArray(payload.scenes) && !payload.title) return send(res, 400, {error: 'scenes or title is required'});
       const result = await render(payload);
-      return send(res, 201, {ok: true, jobId: result.id, status: 'ready', artifact: `/artifacts/${result.id}.mp4`, duration: result.duration, shotCount: result.shotCount});
+      return send(res, 201, {ok: true, jobId: result.id, status: 'ready', artifact: `/artifacts/${result.id}.mp4`, duration: result.duration, shotCount: result.shotCount, quality: result.quality});
     }
     const match = /^\/artifacts\/([a-f0-9-]+)\.mp4$/.exec(req.url || '');
     if (match && req.method === 'GET') {
